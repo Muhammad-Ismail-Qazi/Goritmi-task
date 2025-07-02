@@ -17,6 +17,7 @@ class LocalAuthDataSource {
     );
 
     if (existingUser.isNotEmpty) {
+      print('⚠️ User already exists in DB');
       throw Exception("User already exists");
     }
 
@@ -24,12 +25,14 @@ class LocalAuthDataSource {
       await db.insert(
         'users',
         user.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.abort, // Prevent overwrite
+        conflictAlgorithm: ConflictAlgorithm.abort,
       );
     } catch (e) {
+      print('❌ DB Insert Error: $e');
       throw Exception("Failed to register user: $e");
     }
   }
+
 
   /// Login a user with email and password
   Future<UserModel?> loginUser(String email, String password) async {

@@ -11,11 +11,17 @@ class LocalTodoDataSource {
     await db.insert('todos', todo.toMap());
   }
 
-  Future<List<TodoModel>> fetchAllTodos() async {
+  Future<List<TodoModel>> fetchTodosForUser(int userId) async {
     final db = await dbFuture;
-    final result = await db.query('todos', orderBy: 'id DESC');
+    final result = await db.query(
+      'todos',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'id DESC',
+    );
     return result.map((e) => TodoModel.fromMap(e)).toList();
   }
+
 
   Future<void> updateTodo(TodoModel todo) async {
     final db = await dbFuture;
@@ -27,12 +33,13 @@ class LocalTodoDataSource {
     );
   }
 
-  Future<void> deleteTodo(int id) async {
+  Future<void> deleteTodo(int id, int userId) async {
     final db = await dbFuture;
     await db.delete(
       'todos',
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'id = ? AND userId = ?', // ✅ ensures only deleting user's own task
+      whereArgs: [id, userId],
     );
   }
+
 }

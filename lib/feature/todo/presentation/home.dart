@@ -4,6 +4,7 @@ import 'package:sizer/sizer.dart';
 import '../../../shared/widgets/appbar.dart';
 import '../../../shared/widgets/button.dart';
 import '../../../shared/widgets/textfield.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../../todo/domain/todo_model.dart';
 import '../../todo/provider/todo_provider.dart';
 
@@ -15,11 +16,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late int userId;
+
   @override
   void initState() {
     super.initState();
     Future.delayed(Duration.zero, () {
-      Provider.of<TodoProvider>(context, listen: false).loadTasks();
+      userId = Provider.of<AuthProvider>(context, listen: false).user!.id!;
+      Provider.of<TodoProvider>(context, listen: false).loadTasks(userId);
     });
   }
 
@@ -110,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(height: 1.h),
           Text('Total Tasks: $total', style: const TextStyle(color: Colors.white)),
           Text('Completed: $completed', style: const TextStyle(color: Colors.white)),
-          Text('Progress: $progress%', style: const TextStyle(color: Colors.white, overflow: TextOverflow.ellipsis)),
+          Text('Progress: $progress%', style: const TextStyle(color: Colors.white)),
         ],
       ),
     );
@@ -198,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () async {
-                      await todoProvider.deleteTask(todo.id!);
+                      await todoProvider.deleteTask(todo.id!, userId);
                       _showSnack('Task deleted');
                     },
                   ),
@@ -277,6 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           status: selectedStatus,
                           createdAt: now,
                           updatedAt: now,
+                          userId: userId,
                         );
                         await Provider.of<TodoProvider>(context, listen: false).addTask(task);
                         Navigator.of(context).pop();

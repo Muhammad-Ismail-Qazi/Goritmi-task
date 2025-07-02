@@ -22,35 +22,40 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AuthProvider>(context, listen: false).setError(null);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      authProvider.setError(null);
+      authProvider.checkLoginStatus(context);
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 600;
-          final cardWidth = isMobile ? 90.w : (constraints.maxWidth > 1200 ? 30.w : 40.w);
-
-          return SingleChildScrollView(
-            child: Container(
-              width: 100.w,
-              height: 100.h,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF19013B), Color(0xFF8E2DE2), Color(0xFF19013B)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF19013B), Color(0xFF8E2DE2), Color(0xFF19013B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minWidth: 500,
+                maxWidth: 600,
               ),
-              child: Center(
+              child: IntrinsicWidth(
+                stepWidth: 400,
                 child: Container(
-                  width: cardWidth,
                   padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 4.w),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -60,7 +65,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Form(
                     key: formKey,
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Center(
@@ -103,14 +107,24 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextFieldWidget(
                           controller: passwordController,
                           label: "Password",
-                          obscureText: true,
+                          obscureText: authProvider.obscurePassword,
                           validator: Validators.validatePassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              authProvider.obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              color: Colors.grey,
+                            ),
+                            onPressed: authProvider.togglePasswordVisibility,
+                          ),
                         ),
 
                         if (authProvider.error != null)
                           Padding(
                             padding: EdgeInsets.only(top: 1.h),
-                            child: Text(authProvider.error!, style: const TextStyle(color: Colors.red)),
+                            child: Text(
+                              authProvider.error!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
                           ),
 
                         SizedBox(height: 3.h),
@@ -166,8 +180,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

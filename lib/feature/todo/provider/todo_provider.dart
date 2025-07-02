@@ -11,11 +11,11 @@ class TodoProvider with ChangeNotifier {
   String? _error;
   String? get error => _error;
 
-  /// Load all tasks from DB
-  Future<void> loadTasks() async {
+  /// Load all tasks from DB for a specific user
+  Future<void> loadTasks(int userId) async {
     try {
-      _tasks = await _repository.getAllTodos();
-      print('✅ Loaded ${_tasks.length} tasks');
+      _tasks = await _repository.getAllTodos(userId); // ✅ fixed method name
+      print('✅ Loaded ${_tasks.length} tasks for user $userId');
       notifyListeners();
     } catch (e) {
       _error = "Failed to load tasks";
@@ -23,12 +23,11 @@ class TodoProvider with ChangeNotifier {
     }
   }
 
-
   /// Add a new task
   Future<void> addTask(TodoModel todo) async {
     try {
       await _repository.addTodo(todo);
-      await loadTasks();
+      await loadTasks(todo.userId); // ✅ reload tasks for that user
     } catch (e) {
       _error = "Failed to add task";
       notifyListeners();
@@ -39,18 +38,18 @@ class TodoProvider with ChangeNotifier {
   Future<void> updateTask(TodoModel todo) async {
     try {
       await _repository.updateTodo(todo);
-      await loadTasks();
+      await loadTasks(todo.userId); // ✅ reload tasks for that user
     } catch (e) {
       _error = "Failed to update task";
       notifyListeners();
     }
   }
 
-  /// Delete a task by ID
-  Future<void> deleteTask(int id) async {
+  /// Delete a task by ID and user ID
+  Future<void> deleteTask(int id, int userId) async {
     try {
-      await _repository.deleteTodo(id);
-      await loadTasks();
+      await _repository.deleteTodo(id, userId); // ✅ pass userId
+      await loadTasks(userId); // ✅ reload tasks for that user
     } catch (e) {
       _error = "Failed to delete task";
       notifyListeners();

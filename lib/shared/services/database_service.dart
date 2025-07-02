@@ -55,20 +55,21 @@ class DatabaseService {
 
       await db.execute('''
       CREATE TABLE todos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT,
-        status TEXT NOT NULL CHECK(status IN ('Active', 'Completed')),
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      status TEXT NOT NULL CHECK(status IN ('Active', 'Completed')),
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      userId INTEGER NOT NULL
       )
-    ''');
+      ''');
+
     } catch (e) {
       print('❌ Error creating tables: $e');
       rethrow;
     }
   }
-
 
   /// Closes the database connection
   Future<void> close() async {

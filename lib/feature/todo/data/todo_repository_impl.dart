@@ -16,11 +16,11 @@ class TodoRepositoryImpl implements TodoRepository {
   }
 
   @override
-  Future<List<TodoModel>> getAllTodos() async {
+  Future<List<TodoModel>> getAllTodos(int userId) async {
     try {
-      return await _dataSource.fetchAllTodos();
+      return await _dataSource.fetchTodosForUser(userId);
     } catch (e) {
-      print('❌ Error fetching todos: $e');
+      print('❌ Error fetching todos for user $userId: $e');
       rethrow;
     }
   }
@@ -36,13 +36,12 @@ class TodoRepositoryImpl implements TodoRepository {
   }
 
   @override
-  Future<void> deleteTodo(int id) async {
+  Future<void> deleteTodo(int id, int userId) async {
     try {
-      await _dataSource.deleteTodo(id);
+      await _dataSource.deleteTodo(id, userId);
     } catch (e) {
-      print('❌ Error deleting todo: $e');
+      print('❌ Error deleting todo with id $id for user $userId: $e');
       rethrow;
     }
   }
 }
-

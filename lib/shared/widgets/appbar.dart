@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sizer/sizer.dart';
+import 'package:todo_desktop_app/feature/auth/provider/auth_provider.dart';
 import 'package:todo_desktop_app/shared/widgets/button.dart';
+
+import '../../core/routes/app_routes.dart';
 
 class NavigationBarWidget extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onNewTask;
@@ -68,9 +72,26 @@ class NavigationBarWidget extends StatelessWidget implements PreferredSizeWidget
               width: buttonWidth,
               backgroundColor: Colors.red,
               textColor: Colors.white,
-              onPressed: () {
-                print('Logout');
+              onPressed: () async {
+                final confirmed = await showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Logout'),
+                    content: const Text('Are you sure you want to logout?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Logout')),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true) {
+                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  authProvider.logout();
+                  Navigator.pushReplacementNamed(context, AppRoutes.login);
+                }
               },
+
               label: isCompact ? '🔓' : 'Logout',
             ),
             const SizedBox(width: 16),
