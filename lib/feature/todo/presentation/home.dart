@@ -17,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late int userId;
+  String selectedFilter = 'All';
 
   @override
   void initState() {
@@ -48,13 +49,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  List<TodoModel> _filteredTasks(TodoProvider todoProvider) {
+    if (selectedFilter == 'Active') {
+      return todoProvider.tasks.where((e) => e.status == 'Active').toList();
+    } else if (selectedFilter == 'Completed') {
+      return todoProvider.tasks.where((e) => e.status == 'Completed').toList();
+    }
+    return todoProvider.tasks;
+  }
+
   Widget _buildSmallLayout(TodoProvider todoProvider) {
     return ListView(
       padding: EdgeInsets.all(4.w),
       children: [
         _quickStats(todoProvider),
         SizedBox(height: 2.h),
-        ...todoProvider.tasks.map((todo) => _taskCard(todo)),
+        ..._filteredTasks(todoProvider).map((todo) => _taskCard(todo)),
       ],
     );
   }
@@ -73,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const Text('Filters',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 2.h),
-              _filterTile("All Tasks", todoProvider.tasks.length, selected: true),
+              _filterTile("All", todoProvider.tasks.length),
               _filterTile("Active", todoProvider.tasks.where((e) => e.status == 'Active').length),
               _filterTile("Completed", todoProvider.tasks.where((e) => e.status == 'Completed').length),
               SizedBox(height: 4.h),
@@ -86,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Padding(
             padding: EdgeInsets.all(2.w),
             child: ListView(
-              children: todoProvider.tasks.map((todo) => _taskCard(todo)).toList(),
+              children: _filteredTasks(todoProvider).map((todo) => _taskCard(todo)).toList(),
             ),
           ),
         ),
@@ -120,21 +130,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _filterTile(String title, int count, {bool selected = false}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        border: Border.all(color: selected ? Colors.purple : Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-        color: selected ? const Color(0xFFF5EBFF) : null,
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        title: Text(title, overflow: TextOverflow.ellipsis),
-        trailing: CircleAvatar(
-          radius: 12,
-          backgroundColor: Colors.grey.shade200,
-          child: Text('$count', style: const TextStyle(fontSize: 12, color: Colors.black)),
+  Widget _filterTile(String title, int count) {
+    final isSelected = selectedFilter == title;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          selectedFilter = title;
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: isSelected ? Colors.purple : Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? const Color(0xFFF5EBFF) : null,
+        ),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          title: Text(title, overflow: TextOverflow.ellipsis),
+          trailing: CircleAvatar(
+            radius: 12,
+            backgroundColor: Colors.grey.shade200,
+            child: Text('$count', style: const TextStyle(fontSize: 12, color: Colors.black)),
+          ),
         ),
       ),
     );
