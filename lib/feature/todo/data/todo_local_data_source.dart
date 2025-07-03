@@ -17,7 +17,6 @@ class LocalTodoDataSource {
       'todos',
       where: 'userId = ?',
       whereArgs: [userId],
-      orderBy: 'id DESC',
     );
     return result.map((e) => TodoModel.fromMap(e)).toList();
   }

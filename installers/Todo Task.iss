@@ -5,14 +5,14 @@
 #define MyAppVersion "1.0"
 #define MyAppPublisher "Muhammad Ismail"
 #define MyAppExeName "todo_desktop_app.exe"
-#define MyAppAssocName MyAppName + " "
+#define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".myp"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{00F825D0-CBB5-4094-9798-E3CAECC32F3E}
+AppId={{F35D36A6-E91E-4E31-A691-74E232BEAD22}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -33,6 +33,7 @@ DisableProgramGroupPage=yes
 ;PrivilegesRequired=lowest
 OutputDir=E:\Flutter Project\todo_desktop_app\installers
 OutputBaseFilename=Todo task
+SetupIconFile=C:\Users\dell\Desktop\app_icon.ico
 SolidCompression=yes
 WizardStyle=modern
 
@@ -45,10 +46,9 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "E:\Flutter Project\todo_desktop_app\build\windows\x64\runner\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "E:\Flutter Project\todo_desktop_app\build\windows\x64\runner\Release\flutter_windows.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "E:\Flutter Project\todo_desktop_app\build\windows\x64\runner\Release\window_size_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "E:\Flutter Project\todo_desktop_app\build\windows\x64\runner\Release\sqlite3.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "E:\Flutter Project\todo_desktop_app\build\windows\x64\runner\Release\window_size_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "E:\Flutter Project\todo_desktop_app\build\windows\x64\runner\Release\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
-
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]

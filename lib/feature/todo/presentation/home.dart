@@ -1,3 +1,4 @@
+// HomeScreen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sizer/sizer.dart';
@@ -18,21 +19,43 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late int userId;
   String selectedFilter = 'All';
+  List<TodoModel> localTasks = [];
 
   @override
   void initState() {
     super.initState();
     Future.delayed(Duration.zero, () {
       userId = Provider.of<AuthProvider>(context, listen: false).user!.id!;
-      Provider.of<TodoProvider>(context, listen: false).loadTasks(userId);
+      final provider = Provider.of<TodoProvider>(context, listen: false);
+      provider.loadTasks(userId).then((_) {
+        setState(() {
+          localTasks = _filteredTasks(provider);
+        });
+      });
+    });
+  }
+
+  List<TodoModel> _filteredTasks(TodoProvider provider) {
+    if (selectedFilter == 'Active') {
+      return provider.tasks.where((e) => e.status == 'Active').toList();
+    } else if (selectedFilter == 'Completed') {
+      return provider.tasks.where((e) => e.status == 'Completed').toList();
+    }
+    return provider.tasks;
+  }
+
+  void _onFilterChanged(String filter, TodoProvider provider) {
+    setState(() {
+      selectedFilter = filter;
+      localTasks = _filteredTasks(provider);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final todoProvider = Provider.of<TodoProvider>(context);
+    final provider = Provider.of<TodoProvider>(context);
     final screenWidth = MediaQuery.of(context).size.width;
-    final bool isSmall = screenWidth < 800;
+    final isSmall = screenWidth < 800;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -40,36 +63,43 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           NavigationBarWidget(onNewTask: _showNewTaskDialog),
           Expanded(
-            child: isSmall
-                ? _buildSmallLayout(todoProvider)
-                : _buildLargeLayout(todoProvider),
+            child: isSmall ? _buildSmallLayout() : _buildLargeLayout(provider),
           ),
         ],
       ),
     );
   }
 
-  List<TodoModel> _filteredTasks(TodoProvider todoProvider) {
-    if (selectedFilter == 'Active') {
-      return todoProvider.tasks.where((e) => e.status == 'Active').toList();
-    } else if (selectedFilter == 'Completed') {
-      return todoProvider.tasks.where((e) => e.status == 'Completed').toList();
-    }
-    return todoProvider.tasks;
-  }
-
-  Widget _buildSmallLayout(TodoProvider todoProvider) {
+  Widget _buildSmallLayout() {
     return ListView(
       padding: EdgeInsets.all(4.w),
       children: [
-        _quickStats(todoProvider),
+        _quickStats(),
         SizedBox(height: 2.h),
-        ..._filteredTasks(todoProvider).map((todo) => _taskCard(todo)),
+        ReorderableListView.builder(
+          buildDefaultDragHandles: false,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: localTasks.length,
+          onReorder: (oldIndex, newIndex) {
+            setState(() {
+              if (newIndex > oldIndex) newIndex--;
+              final item = localTasks.removeAt(oldIndex);
+              localTasks.insert(newIndex, item);
+            });
+          },
+          itemBuilder: (context, index) {
+            return Container(
+              key: ValueKey(localTasks[index].id),
+              child: _taskCard(localTasks[index]),
+            );
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildLargeLayout(TodoProvider todoProvider) {
+  Widget _buildLargeLayout(TodoProvider provider) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -80,14 +110,24 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Filters',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                'Filters',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 2.h),
-              _filterTile("All", todoProvider.tasks.length),
-              _filterTile("Active", todoProvider.tasks.where((e) => e.status == 'Active').length),
-              _filterTile("Completed", todoProvider.tasks.where((e) => e.status == 'Completed').length),
+              _filterTile("All", provider.tasks.length, provider),
+              _filterTile(
+                "Active",
+                provider.tasks.where((e) => e.status == 'Active').length,
+                provider,
+              ),
+              _filterTile(
+                "Completed",
+                provider.tasks.where((e) => e.status == 'Completed').length,
+                provider,
+              ),
               SizedBox(height: 4.h),
-              _quickStats(todoProvider),
+              _quickStats(),
             ],
           ),
         ),
@@ -95,8 +135,21 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: Padding(
             padding: EdgeInsets.all(2.w),
-            child: ListView(
-              children: _filteredTasks(todoProvider).map((todo) => _taskCard(todo)).toList(),
+            child: ReorderableListView.builder(
+              itemCount: localTasks.length,
+              onReorder: (oldIndex, newIndex) {
+                setState(() {
+                  if (newIndex > oldIndex) newIndex--;
+                  final item = localTasks.removeAt(oldIndex);
+                  localTasks.insert(newIndex, item);
+                });
+              },
+              itemBuilder: (context, index) {
+                return Container(
+                  key: ValueKey(localTasks[index].id),
+                  child: _taskCard(localTasks[index]),
+                );
+              },
             ),
           ),
         ),
@@ -104,129 +157,105 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _quickStats(TodoProvider todoProvider) {
-    final completed = todoProvider.tasks.where((e) => e.status == 'Completed').length;
-    final total = todoProvider.tasks.length;
-    final progress = total == 0 ? 0 : ((completed / total) * 100).toInt();
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(2.w),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: const LinearGradient(colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)]),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Quick Stats',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          SizedBox(height: 1.h),
-          Text('Total Tasks: $total', style: const TextStyle(color: Colors.white)),
-          Text('Completed: $completed', style: const TextStyle(color: Colors.white)),
-          Text('Progress: $progress%', style: const TextStyle(color: Colors.white)),
-        ],
-      ),
-    );
-  }
-
-  Widget _filterTile(String title, int count) {
+  Widget _filterTile(String title, int count, TodoProvider provider) {
     final isSelected = selectedFilter == title;
     return InkWell(
-      onTap: () {
-        setState(() {
-          selectedFilter = title;
-        });
-      },
+      onTap: () => _onFilterChanged(title, provider),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          border: Border.all(color: isSelected ? Colors.purple : Colors.grey.shade300),
+          border: Border.all(
+            color: isSelected ? Colors.purple : Colors.grey.shade300,
+          ),
           borderRadius: BorderRadius.circular(8),
           color: isSelected ? const Color(0xFFF5EBFF) : null,
         ),
         child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          title: Text(title, overflow: TextOverflow.ellipsis),
+          title: Text(title),
           trailing: CircleAvatar(
             radius: 12,
             backgroundColor: Colors.grey.shade200,
-            child: Text('$count', style: const TextStyle(fontSize: 12, color: Colors.black)),
+            child: Text(
+              '$count',
+              style: const TextStyle(fontSize: 12, color: Colors.black),
+            ),
           ),
         ),
       ),
     );
   }
 
+  Widget _quickStats() {
+    final completed = localTasks.where((e) => e.status == 'Completed').length;
+    final total = localTasks.length;
+    final progress = total == 0 ? 0 : ((completed / total) * 100).toInt();
+
+    return Container(
+      padding: EdgeInsets.all(2.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Quick Stats',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 1.h),
+          Text(
+            'Total Tasks: $total',
+            style: const TextStyle(color: Colors.white),
+          ),
+          Text(
+            'Completed: $completed',
+            style: const TextStyle(color: Colors.white),
+          ),
+          Text(
+            'Progress: $progress%',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _taskCard(TodoModel todo) {
-    final todoProvider = Provider.of<TodoProvider>(context, listen: false);
+    final provider = Provider.of<TodoProvider>(context, listen: false);
     return Card(
       color: Colors.white,
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      elevation: 2,
+      key: ValueKey(todo.id),
+      child: ListTile(
+        title: Text(todo.title),
+        subtitle: Text(todo.description),
+        trailing: Wrap(
+          spacing: 8,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    todo.title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: todo.status == 'Completed' ? Colors.green.shade100 : Colors.blue.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    todo.status,
-                    style: TextStyle(color: todo.status == 'Completed' ? Colors.green : Colors.blue),
-                  ),
-                ),
-              ],
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.orange),
+              onPressed: () => _showEditTaskDialog(todo),
             ),
-            const SizedBox(height: 8),
-            Text(todo.description),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                CircleAvatar(
-                  child: IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.orange),
-                    onPressed: () => _showEditTaskDialog(todo),
-                  ),
-                ),
-                CircleAvatar(
-                  child: IconButton(
-                    icon: const Icon(Icons.check, color: Colors.green),
-                    onPressed: () async {
-                      await todoProvider.updateTask(
-                        todo.copyWith(status: 'Completed', updatedAt: DateTime.now()),
-                      );
-                      _showSnack('Task marked as completed');
-                    },
-                  ),
-                ),
-                CircleAvatar(
-                  child: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () async {
-                      await todoProvider.deleteTask(todo.id!, userId);
-                      _showSnack('Task deleted');
-                    },
-                  ),
-                ),
-              ],
-            )
+            IconButton(
+              icon: const Icon(Icons.check, color: Colors.green),
+              onPressed: () async {
+                await provider.updateTask(
+                  todo.copyWith(status: 'Completed', updatedAt: DateTime.now()),
+                );
+                _showSnack('Task marked as completed');
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () async {
+                await provider.deleteTask(todo.id!, userId);
+                setState(() => localTasks.removeWhere((e) => e.id == todo.id));
+                _showSnack('Task deleted');
+              },
+            ),
           ],
         ),
       ),
@@ -255,14 +284,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     controller: titleController,
                     label: 'Title',
                     inputType: TextInputType.text,
-                    validator: (val) => val == null || val.trim().isEmpty ? 'Title is required' : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? 'Title is required'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   TextFieldWidget(
                     controller: descController,
                     label: 'Description',
                     inputType: TextInputType.multiline,
-                    validator: (val) => val == null || val.trim().isEmpty ? 'Description is required' : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? 'Description is required'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
@@ -301,12 +334,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           updatedAt: now,
                           userId: userId,
                         );
-                        await Provider.of<TodoProvider>(context, listen: false).addTask(task);
+                        await Provider.of<TodoProvider>(
+                          context,
+                          listen: false,
+                        ).addTask(task);
                         Navigator.of(context).pop();
                         _showSnack('Task added successfully');
                       }
                     },
-                  )
+                  ),
                 ],
               ),
             ),
@@ -338,14 +374,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     controller: titleController,
                     label: 'Title',
                     inputType: TextInputType.text,
-                    validator: (val) => val == null || val.trim().isEmpty ? 'Title is required' : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? 'Title is required'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   TextFieldWidget(
                     controller: descController,
                     label: 'Description',
                     inputType: TextInputType.multiline,
-                    validator: (val) => val == null || val.trim().isEmpty ? 'Description is required' : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? 'Description is required'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
@@ -381,12 +421,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           status: selectedStatus,
                           updatedAt: DateTime.now(),
                         );
-                        await Provider.of<TodoProvider>(context, listen: false).updateTask(updatedTask);
+                        await Provider.of<TodoProvider>(
+                          context,
+                          listen: false,
+                        ).updateTask(updatedTask);
                         Navigator.of(context).pop();
                         _showSnack('Task updated successfully');
                       }
                     },
-                  )
+                  ),
                 ],
               ),
             ),
